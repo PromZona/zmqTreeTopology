@@ -23,7 +23,6 @@ public:
 
     ~client()
     {
-        std::cout << "client in destructor\n";
         if (father)
             delete father;
         if (left)
@@ -57,7 +56,6 @@ public:
                 switch (cmdProc.commandCode)
                 {
                 case 1:
-                    std::cout << "creating...\n";
                     createNewNode(cmdProc);
                     break;
                 case 2:
@@ -70,7 +68,6 @@ public:
                     findInDict(cmdProc);
                     break;
                 case 5:
-                    std::cout << this->pid << ": HEARTBIT ACTIVATED\n";
                     time1 = std::chrono::system_clock::now();
                     time2 = std::chrono::system_clock::now();
                     dur = time2 - time1;
@@ -145,12 +142,10 @@ public:
             if (clientPid < pid) // if clientPid < PID, then must proccess left side
             {
                 left = new Node(clientPid, clientPort);
-                std::cout << left << " Create left\n";
             }
             else if (clientPid > pid) // if clientPid < PID, then must proccess right side
             {
                 right = new Node(clientPid, clientPort);
-                std::cout << right << " Create right\n";
             }
 
             std::string procname = "client.exe";
@@ -263,14 +258,14 @@ public:
         {
             if (clientPid > this->pid)
             {
-                command nwcmd(right, 3, cmdProc.args);
+                command nwcmd(right, clientPid, str, num);
                 clientManager->commandQMutexS.lock();
                 clientManager->commandsQsend.push(nwcmd);
                 clientManager->commandQMutexS.unlock();
             }
             else if (clientPid < this->pid)
             {
-                command nwcmd(left, 3, cmdProc.args);
+                command nwcmd(left, clientPid, str, num);
                 clientManager->commandQMutexS.lock();
                 clientManager->commandsQsend.push(nwcmd);
                 clientManager->commandQMutexS.unlock();
@@ -291,14 +286,14 @@ public:
         {
             if (clientPid > this->pid)
             {
-                command nwcmd(right, 4, cmdProc.args);
+                command nwcmd(right, clientPid, str);
                 clientManager->commandQMutexS.lock();
                 clientManager->commandsQsend.push(nwcmd);
                 clientManager->commandQMutexS.unlock();
             }
             else if (clientPid < this->pid)
             {
-                command nwcmd(left, 4, cmdProc.args);
+                command nwcmd(left, clientPid, str);
                 clientManager->commandQMutexS.lock();
                 clientManager->commandsQsend.push(nwcmd);
                 clientManager->commandQMutexS.unlock();
