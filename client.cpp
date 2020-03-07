@@ -39,11 +39,12 @@ public:
         std::thread proc(&this->commandProcess, this);
         managerPr.join();
         proc.join();
-        hb.detach();
     }
 
     void commandProcess()
     {
+        auto time1 = std::chrono::system_clock::now();
+        auto time2 = std::chrono::system_clock::now();
         while (clientManager->status)
         {
             if (clientManager->commandsQreceived.size() > 0)
@@ -70,10 +71,13 @@ public:
                     break;
                 case 5:
                     std::cout << this->pid << ": HEARTBIT ACTIVATED\n";
+                    time1 = std::chrono::system_clock::now();
+                    time2 = std::chrono::system_clock::now();
+                    dur = time2 - time1;
                     heartbitActivate(cmdProc);
                     break;
                 case 6:
-                    std::cout << this->pid << ": GET BIT FROM CHILD " << cmdProc.args << "\n";
+                    // std::cout << this->pid << ": GET BIT FROM CHILD " << cmdProc.args << "\n";
                     sendToServer(cmdProc);
                     break;
                 case -1:
@@ -93,14 +97,20 @@ public:
                 }
             }
 
-            Sleep(200);
             if (heartBeat)
             {
-                command cmd;
-                cmd.bit(father, this->pid);
-                clientManager->commandsQsend.push(cmd);
-                if (heartBeatTime > 0) Sleep(heartBeatTime);
+                time2 = std::chrono::system_clock::now();
+                dur += time2 - time1;
+                time1 = time2;
+                if (dur.count()*1000 >= static_cast<float>(heartBeatTime))
+                {
+                    dur = time2 - time1;
+                    command cmd;
+                    cmd.bit(father, this->pid);
+                    clientManager->commandsQsend.push(cmd);
+                }
             }
+            Sleep(SLEEP_TIME);
         }
     }
 
@@ -222,7 +232,7 @@ public:
                     std::cout << "Error: Not found\n";
                 }
             }
-            Sleep(2000);
+            Sleep(SLEEP_TIME);
             if (left)
             {
                 if (clientPid == left->pid)
@@ -313,7 +323,6 @@ public:
         sscanf(cmdProc.args.c_str(), "%d", &heartBeatTime);
         if (left != nullptr)
         {
-            std::cout << "left\n";
             command ncmd;
             ncmd.heartbit(left, heartBeatTime);
             clientManager->commandQMutexS.lock();
@@ -323,7 +332,6 @@ public:
 
         if (right != nullptr)
         {
-            std::cout << "right\n";
             command ncmd;
             ncmd.heartbit(right, heartBeatTime);
             clientManager->commandQMutexS.lock();
@@ -355,7 +363,7 @@ public:
     std::map<std::string, int> mapa;
     bool heartBeat = false;
     int heartBeatTime = 0;
-    std::thread hb;
+    std::chrono::duration<float> dur;
 };
 
 int main(int argv, char **argc)

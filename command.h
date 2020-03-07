@@ -2,10 +2,12 @@
 #include <functional>
 #include <windows.h>
 #include <map>
+#include <chrono>
 
 #define sleep(n) Sleep(n)
 
 #define MAX_ARGS_SIZE 128
+#define SLEEP_TIME 20
 
 class Node
 {
@@ -230,7 +232,7 @@ public:
                 }
             }
             commandQMutexS.unlock();
-            sleep(1000);
+            Sleep(SLEEP_TIME);
         }
     }
 

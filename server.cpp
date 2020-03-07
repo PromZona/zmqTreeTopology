@@ -113,13 +113,6 @@ public:
                         std::cout << "Cannot create proccess - " << GetLastError() << std::endl;
                     }
                     root = new Node(pid, freePort);
-                    /*
-                    root->pid = pid;
-                    root->port = freePort;
-                    root->respondContext = zmq::context_t(1);
-                    root->respondPath.append(std::to_string(freePort));
-                    root->respondSocket = zmq::socket_t(root->respondContext, ZMQ_REQ);
-                    */
                     rootMutex.lock();
                     rootExist = true;
                     rootMutex.unlock();
@@ -153,7 +146,7 @@ public:
                     }
                 }
 
-                Sleep(2000);
+                Sleep(SLEEP_TIME);
                 if (pid == root->pid)
                 {
                     delete root;
@@ -189,12 +182,18 @@ public:
             {
                 int time = 0;
                 std::cin >> time;
+                if (time < 100)
+                {
+                    std::cout << "ERROR: too little time. Heartbit at least 100\n";
+                    break;
+                }
                 command nwcommand;
                 nwcommand.heartbit(root, time);
                 commandQMutex.lock();
                 commandsQ.push(nwcommand);
                 commandQMutex.unlock();
                 bitTime = time;
+                bitCheck = std::thread(&this->bitter, this);
                 std::cout << "0: HEARTBIT ACTIVATED\n";
                 break;
             }
@@ -253,7 +252,7 @@ public:
                     std::cout << "Server: Error - " << e.what() << std::endl;
                 }
             }
-            Sleep(1000);
+            Sleep(50);
         }
     }
 
@@ -265,9 +264,10 @@ public:
             {
 
                 zmq::message_t received, sendbuf(2);
-                recSocket.recv(&received);  // Receive
+                recSocket.recv(&received);       // Receive
                 memcpy(sendbuf.data(), "Ok", 2); // Ok
-                recSocket.send(sendbuf);    // Reply
+                recSocket.send(sendbuf);         // Reply
+
                 std::string mes = std::string(static_cast<char *>(received.data()), received.size());
                 int cmdCode = 0;
                 char args[MAX_ARGS_SIZE];
@@ -285,42 +285,48 @@ public:
 
     void processor()
     {
-        if(commandReceived.size() > 0)
+        while (serverStatus)
         {
-            command cmdProc = commandReceived.front();
-            commandReceived.pop();
-            std::cout << "SERVER: ACCEPT BIT " << cmdProc.args << std::endl;
-            switch(cmdProc.commandCode)
+            if (commandReceived.size() > 0)
             {
+                command cmdProc = commandReceived.front();
+                commandReceived.pop();
+                switch (cmdProc.commandCode)
+                {
                 case 6:
                 {
-                    std::cout << "SERVER: ACCEPT BIT " << cmdProc.args << std::endl;
-                    bitCheck = std::thread(&this->bitter, this);
+                    pidsTime.find(atoi(cmdProc.args.c_str()))->second = 0;
                     break;
                 }
+                }
             }
+            Sleep(SLEEP_TIME);
         }
     }
 
     void bitter()
-    {   
-        
-        for(int i = 0; i < pids.size(); i++)
+    {
+
+        for (int i = 0; i < pids.size(); i++)
         {
             pidsTime.insert(std::pair<int, int>(pids[i], 0));
         }
 
-        int waittime = 200;
-        while(serverStatus)
+        int waittime = 25;
+        while (serverStatus)
         {
             Sleep(waittime);
-            for(auto i = pidsTime.begin(); i != pidsTime.end(); i++)
+            for (auto i = pidsTime.begin(); i != pidsTime.end();)
             {
                 i->second += waittime;
-                if(i->second >= bitTime * 4)
+                if (i->second >= bitTime * 4)
                 {
-                    std::cout << "Heartbit: node " <<  i->first << " is unavailable now\n";
-                    pidsTime.erase(i);
+                    std::cout << "Heartbit: node " << i->first << " is unavailable now\n";
+                    pidsTime.erase(i++);
+                }
+                else
+                {
+                    ++i;
                 }
             }
         }
@@ -340,10 +346,10 @@ public:
     const int SERVER_PORT = 5554;
     bool rootExist = false;
     bool serverStatus = true;
-    std::vector<int> pids; 
+    std::vector<int> pids;
 
     std::thread bitCheck;
-    std::map<int , int> pidsTime; // <pid, time>
+    std::map<int, int> pidsTime; // <pid, time>
     int bitTime = 0;
 };
 
