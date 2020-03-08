@@ -71,6 +71,11 @@ public:
             {
                 commandid = 9;
             }
+            else if (input.substr(0, 4) == "exit")
+            {
+                this->serverStatus = false;
+                return;
+            }
 
             switch (commandid)
             {
