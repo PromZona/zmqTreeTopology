@@ -32,10 +32,12 @@ public:
         std::thread sender(&this->commandSender, this);
         std::thread rec(&this->commandReceiver, this);
         std::thread prc(&this->processor, this);
+        std::thread rootPinger(&this->pingRoot, this);
 
         input.join();
         sender.join();
         prc.join();
+        rootPinger.join();
         rec.detach();
         bitCheck.detach();
     }
@@ -329,6 +331,22 @@ public:
                     ++i;
                 }
             }
+        }
+    }
+
+    void pingRoot()
+    {
+        while (this->serverStatus)
+        {
+            if (rootExist)
+            {
+                command nwcmd;
+                nwcmd.stillLive(root);
+                this->commandQMutex.lock();
+                this->commandsQ.push(nwcmd);
+                this->commandQMutex.unlock();
+            }
+            Sleep(1000);
         }
     }
 

@@ -9,6 +9,8 @@
 #define MAX_ARGS_SIZE 128
 #define SLEEP_TIME 20
 
+const int WAIT_TIME_BEFORE_DISCONNECT = 1000;
+
 class Node
 {
 public:
@@ -18,7 +20,7 @@ public:
         port = pt;
         respondContext = zmq::context_t(1);
         respondSocket = zmq::socket_t(respondContext, ZMQ_REQ);
-        respondPath = std::string("tcp://localhost:");
+        respondSocket.setsockopt(ZMQ_SNDTIMEO, &WAIT_TIME_BEFORE_DISCONNECT, sizeof(WAIT_TIME_BEFORE_DISCONNECT));        respondPath = std::string("tcp://localhost:");
         respondPath.append(std::to_string(port));
     }
 
@@ -119,6 +121,14 @@ public:
         isFather = true;
     }
 
+    // send to childrens that you still live [7]
+    void stillLive(Node *node)
+    {
+        nodeP = node;
+        commandCode = 7;
+        args = "";
+    }
+
     void print()
     {
         std::cout << "command: " << (int)commandCode << std::endl;
@@ -146,6 +156,7 @@ public:
     {
         receiverContext = zmq::context_t(1);
         receiverSocket = zmq::socket_t(receiverContext, ZMQ_REP);
+        receiverSocket.setsockopt(ZMQ_SNDTIMEO, &WAIT_TIME_BEFORE_DISCONNECT, sizeof(WAIT_TIME_BEFORE_DISCONNECT));
         std::string path = "tcp://*:";
         path.append(std::to_string(port));
         receiverSocket.bind(path);

@@ -7,6 +7,9 @@
 #include <windows.h>
 #include "command.h"
 
+// TODO: дописать цикл в котором надо увеличивать время и проверять не прошло ли слишком много
+// Если прошло слишком много - убить себя. Если пришел сигнал от отца - обнулить таймер.
+
 class client
 {
 public:
@@ -36,14 +39,16 @@ public:
         clientManager->port = this->port;
         std::thread managerPr(&manager::Start, clientManager);
         std::thread proc(&this->commandProcess, this);
+        std::thread childRTL(&this->sendChildrensReasonToLive, this);
         managerPr.join();
         proc.join();
+        childRTL.join();
     }
 
     void commandProcess()
     {
-        auto time1 = std::chrono::system_clock::now();
-        auto time2 = std::chrono::system_clock::now();
+        auto beatTime1 = std::chrono::system_clock::now();
+        auto beatTime2 = std::chrono::system_clock::now();
         while (clientManager->status)
         {
             if (clientManager->commandsQreceived.size() > 0)
@@ -68,14 +73,16 @@ public:
                     findInDict(cmdProc);
                     break;
                 case 5:
-                    time1 = std::chrono::system_clock::now();
-                    time2 = std::chrono::system_clock::now();
-                    dur = time2 - time1;
+                    beatTime1 = std::chrono::system_clock::now();
+                    beatTime2 = std::chrono::system_clock::now();
+                    dur = beatTime2 - beatTime1;
                     heartbitActivate(cmdProc);
                     break;
                 case 6:
-                    // std::cout << this->pid << ": GET BIT FROM CHILD " << cmdProc.args << "\n";
                     sendToServer(cmdProc);
+                    break;
+                case 7:
+                    pingbyFather(cmdProc);
                     break;
                 case -1:
                     if (cmdProc.nodeP == left)
@@ -94,19 +101,27 @@ public:
                 }
             }
 
+            beatTime2 = std::chrono::system_clock::now();
+            std::chrono::duration<float> buf = beatTime2 - beatTime1;
+            beatTime1 = beatTime2;
             if (heartBeat)
             {
-                time2 = std::chrono::system_clock::now();
-                dur += time2 - time1;
-                time1 = time2;
-                if (dur.count()*1000 >= static_cast<float>(heartBeatTime))
+                dur += buf;
+                if (dur.count() * 1000 >= static_cast<float>(heartBeatTime))
                 {
-                    dur = time2 - time1;
+                    dur = beatTime2 - beatTime1;
                     command cmd;
                     cmd.bit(father, this->pid);
                     clientManager->commandsQsend.push(cmd);
                 }
             }
+
+            this->fPing += buf;
+            if (fPing.count() * 1000 >= 1000 * 4)
+            {
+                clientManager->status = false;
+            }
+
             Sleep(SLEEP_TIME);
         }
     }
@@ -348,17 +363,49 @@ public:
         clientManager->commandQMutexS.unlock();
     }
 
-    Node *father;
-    Node *left;
-    Node *right;
+    // [7]
+    void pingbyFather(command cmdProc)
+    {
+        auto time = std::chrono::system_clock::now();
+        fPing = time - time;
+    }
 
-    int pid, port;
-    manager *clientManager;
+    // Send for children that father still alive
+    void sendChildrensReasonToLive()
+    {
+        while (this->clientManager->status)
+        {
+            if (left)
+            {
+                command nwcmd;
+                nwcmd.stillLive(left);
+                clientManager->commandQMutexS.lock();
+                clientManager->commandsQsend.push(nwcmd);
+                clientManager->commandQMutexS.unlock();
+            }
 
-    std::map<std::string, int> mapa;
-    bool heartBeat = false;
-    int heartBeatTime = 0;
-    std::chrono::duration<float> dur;
+            if (right)
+            {
+                command nwcmd;
+                nwcmd.stillLive(right);
+                clientManager->commandQMutexS.lock();
+                clientManager->commandsQsend.push(nwcmd);
+                clientManager->commandQMutexS.unlock();
+            }
+            Sleep(1000);
+        }
+    }
+
+    bool heartBeat = false;             // is HeartBeat activated
+    int heartBeatTime = 0;              // time to make beat
+    int pid, port;                      // pid and port of this node
+    Node *father;                       // father node
+    Node *left;                         // left son
+    Node *right;                        // tight son
+    manager *clientManager;             // manager of receiveing and sending messages
+    std::map<std::string, int> mapa;    // container for dictonary
+    std::chrono::duration<float> dur;   // how much time pass from last beat
+    std::chrono::duration<float> fPing; // how Long Without Father Answer
 };
 
 int main(int argv, char **argc)
