@@ -148,13 +148,14 @@ public:
                     }
                 }
 
-                Sleep(SLEEP_TIME);
                 if (pid == root->pid)
                 {
-                    delete root;
-                    root = nullptr;
                     rootExist = false;
+                    Sleep(100);
+                    root = nullptr;
+                    delete root;
                 }
+                Sleep(SLEEP_TIME);
                 break;
             }
             case 3:
@@ -164,6 +165,11 @@ public:
                 char str[MAX_ARGS_SIZE];
                 int num = -1;
                 sscanf(a.c_str(), " %d %s %d", &pid, str, &num);
+                if(!rootExist)
+                {
+                    std::cout << "Error: " << pid << " doesn't exist\n";
+                    break;
+                }
                 if (num == -1)
                 {
                     command nwcom(root, pid, str);
@@ -225,6 +231,20 @@ public:
                 command commandInProccess = commandsQ.front();
                 commandsQ.pop();
                 commandQMutex.unlock();
+
+                DWORD stat;
+                GetExitCodeProcess(this->processInfo.hProcess, &stat);
+                if (stat != 259)
+                {
+                    std::cout << "Error: pid " << commandInProccess.nodeP->pid << " unavailable\n";
+                    command nwcmd(commandInProccess.nodeP);
+
+                    this->rootExist = false;
+                    root = nullptr;
+                    delete root;
+                    continue;
+                }
+
                 std::string stringCommand;
                 stringCommand.append(std::to_string(commandInProccess.commandCode));
                 stringCommand.append(" ");

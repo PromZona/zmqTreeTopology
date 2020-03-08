@@ -273,17 +273,31 @@ public:
         {
             if (clientPid > this->pid)
             {
-                command nwcmd(right, clientPid, str, num);
-                clientManager->commandQMutexS.lock();
-                clientManager->commandsQsend.push(nwcmd);
-                clientManager->commandQMutexS.unlock();
+                if (right)
+                {
+                    command nwcmd(right, clientPid, str, num);
+                    clientManager->commandQMutexS.lock();
+                    clientManager->commandsQsend.push(nwcmd);
+                    clientManager->commandQMutexS.unlock();
+                }
+                else
+                {
+                    std::cout << "Error: " << clientPid << " doesn't exist\n";
+                }
             }
             else if (clientPid < this->pid)
             {
-                command nwcmd(left, clientPid, str, num);
-                clientManager->commandQMutexS.lock();
-                clientManager->commandsQsend.push(nwcmd);
-                clientManager->commandQMutexS.unlock();
+                if (left)
+                {
+                    command nwcmd(left, clientPid, str, num);
+                    clientManager->commandQMutexS.lock();
+                    clientManager->commandsQsend.push(nwcmd);
+                    clientManager->commandQMutexS.unlock();
+                }
+                else
+                {
+                    std::cout << "Error: " << clientPid << " doesn't exist\n";
+                }
             }
             return;
         }
@@ -301,17 +315,31 @@ public:
         {
             if (clientPid > this->pid)
             {
-                command nwcmd(right, clientPid, str);
-                clientManager->commandQMutexS.lock();
-                clientManager->commandsQsend.push(nwcmd);
-                clientManager->commandQMutexS.unlock();
+                if (right)
+                {
+                    command nwcmd(right, clientPid, str);
+                    clientManager->commandQMutexS.lock();
+                    clientManager->commandsQsend.push(nwcmd);
+                    clientManager->commandQMutexS.unlock();
+                }
+                else
+                {
+                    std::cout << "Error: " << clientPid << " doesn't exist\n";
+                }
             }
             else if (clientPid < this->pid)
             {
-                command nwcmd(left, clientPid, str);
-                clientManager->commandQMutexS.lock();
-                clientManager->commandsQsend.push(nwcmd);
-                clientManager->commandQMutexS.unlock();
+                if (left)
+                {
+                    command nwcmd(left, clientPid, str);
+                    clientManager->commandQMutexS.lock();
+                    clientManager->commandsQsend.push(nwcmd);
+                    clientManager->commandQMutexS.unlock();
+                }
+                else
+                {
+                    std::cout << "Error: " << clientPid << " doesn't exist\n";
+                }
             }
             return;
         }
