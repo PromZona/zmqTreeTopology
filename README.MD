@@ -4,18 +4,18 @@
 * libzmq.dll + libzmq.lib
 ## Compile
 First of all compile server
-> g++ server.cpp -L./ -<libzmq>
+> g++ server.cpp -L./ -**libzmq** 
 
 Then compile client
-> g++ client.cpp -L./ -<libzmq> 
+> g++ client.cpp -L./ -**libzmq** 
 
 Start by server.exe
 
 # Commands:
-* create [pid] - creating new node with **pid**
-* remove [pid] - deleting node by **pid**
-* exec [pid] [string] [int] - create new note in dict. **string** is key, **int** is value
-* heartbit [int] - start process of heartbitting every **int** milliseconds
+* create [**pid**] - creating new node with **pid**
+* remove [**pid**] - deleting node by **pid**
+* exec [**pid**] [**string**] [**int**] - create new note in dict. **string** is key, **int** is value
+* heartbit [**int**] - start process of heartbitting every **int** milliseconds
 * status - print root node status
 
 ## Bugs:
